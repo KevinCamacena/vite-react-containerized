@@ -1,14 +1,13 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, SubmitHandler } from "react-hook-form"
 import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  // FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -16,100 +15,136 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
+// Validation schema
+
 const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
+  ProjectName: z.string().min(3, { message: "Project name is too short" }),
+  OwnerName: z.string().min(3, { message: "Owner name is too short" }),
+  TeamName: z.string().min(3, { message: "Team name is too short" }),
+  Environment: z.enum(["Development", "Testing", "Production"]),
+  PreferredCloud: z.enum(["AWS", "Azure", "GCP"]),
 })
 
-export function ProfileForm() {
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-  });
+// Define TypeScript interface for form data
+type ProfileFormData = z.infer<typeof formSchema>
 
-  const onSubmit = (data: any) => {
-    console.log(data);
-  };
+// Create a reusable FormSelect component
+interface FormSelectProps {
+  label: string
+  name: keyof ProfileFormData
+  options: {
+    label: string,
+    value: string
+  }[]
+  control: any
+}
+
+const FormSelect: React.FC<FormSelectProps> = ({ label, name, options, control }) => (
+  <FormField
+    control={control}
+    name={name}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>{label}</FormLabel>
+        <FormControl>
+          <select {...field} className="input w-full border rounded-md p-2">
+            <option value="">Select {label}</option>
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+)
+
+// Organize form fields configuration
+const formFields = [
+  {
+    name: "ProjectName",
+    label: "Project Name",
+    placeholder: "My Awesome Project",
+    type: "input",
+  },
+  {
+    name: "OwnerName",
+    label: "Owner Name",
+    placeholder: "Jane Doe",
+    type: "input",
+  },
+  {
+    name: "TeamName",
+    label: "Team Name",
+    placeholder: "Awesome-team",
+    type: "input",
+  },
+]
+
+export function ProfileForm() {
+  const form = useForm<ProfileFormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      ProjectName: "",
+      OwnerName: "",
+      TeamName: "",
+      Environment: undefined,
+      PreferredCloud: undefined,
+    },
+  })
+
+  const onSubmit: SubmitHandler<ProfileFormData> = (data) => {
+    console.log(data)
+    // Handle form submission logic here
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="ProjectName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project Name</FormLabel>
-              <FormControl>
-                <Input placeholder="My Awesome Project" {...field} />
-              </FormControl>        
-              {/* <FormDescription>
-                This is your public display name.
-              </FormDescription> */}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="OwnerName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Owner Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Jane Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField 
+        {/* Render input fields */}
+        {formFields.map((field) => (
+          <FormField
+            key={field.name}
             control={form.control}
-            name="TeamName"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Team Name</FormLabel>
+            name={field.name as keyof ProfileFormData}
+            render={({ field: formField }) => (
+              <FormItem>
+                <FormLabel>{field.label}</FormLabel>
                 <FormControl>
-                    <Input placeholder="Awesome-team" {...field} />
+                  <Input placeholder={field.placeholder} {...formField} />
                 </FormControl>
                 <FormMessage />
-                </FormItem>
+              </FormItem>
             )}
+          />
+        ))}
+
+        {/* Render select fields */}
+        <FormSelect
+          label="Environment"
+          name="Environment"
+          control={form.control}
+          options={[
+            { label: "Development", value: "Development" },
+            { label: "Testing", value: "Testing" },
+            { label: "Production", value: "Production" },
+          ]}
         />
-        <FormField
-            control={form.control}
-            name="Environment"
-            render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Environment</FormLabel>
-                    <FormControl>
-                        <select {...field} className="input w-full border rounded-md p-2">
-                            <option value="Development">Development</option>
-                            <option value="Testing">Testing</option>
-                            <option value="Production">Production</option>
-                        </select>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-            )}
+
+        <FormSelect
+          label="Preferred Cloud"
+          name="PreferredCloud"
+          control={form.control}
+          options={[
+            { label: "AWS", value: "AWS" },
+            { label: "Azure", value: "Azure" },
+            { label: "GCP", value: "GCP" },
+          ]}
         />
-        <FormField
-            control={form.control}
-            name="PreferredCloud"
-            render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Cloud</FormLabel>
-                    <FormControl>
-                        <select {...field} className="input w-full border rounded-md p-2">
-                            <option value="AWS">AWS</option>
-                            <option value="Azure">Azure</option>
-                            <option value="GCP">GCP</option>
-                        </select>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-            )}
-        />
+
         <Button type="submit">Submit</Button>
       </form>
     </Form>
